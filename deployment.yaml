@@ -1,0 +1,88 @@
+Parameters:
+  LambdaVersion:
+    Type: String
+    Default: "605b89e"
+    
+Resources:
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Sub "deploy-${AWS::AccountId}"
+        S3Key: !Sub "lambda/tn-gov-covid-19-${LambdaVersion}.zip"
+      Handler: "get_count.lambda_handler"
+      MemorySize: 128
+      Role: !GetAtt [ LambdaExecutionRole, Arn ]
+      Runtime: python3.6
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: AllowLogs
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: 'logs:*'
+            Resource: 'arn:aws:logs:*:*:*'
+      - PolicyName: AllowS3
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: 's3:*'
+            Resource:
+              - 'arn:aws:s3:::tn-gov-covid-19/'
+              - 'arn:aws:s3:::tn-gov-covid-19/*'
+      - PolicyName: AllowSns
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: 'sns:*'
+            Resource:
+              - !Ref SnsTopic
+
+  CronJob:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: "rate(15 minutes)"
+      Targets: !Ref LambdaFunction
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt [ LambdaFunction, Arn ]
+          Id: TnGovCovid19
+
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref "LambdaFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt [ CronJob, Arn ]
+
+
+  SnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint: andy@cowell.org
+          Protocol: email
+              
+Outputs:
+  LambdaFunction:
+    Value: !Ref LambdaFunction
+  LambdaFunctionVersion:
+    Value: !Ref LambdaVersion
+        
