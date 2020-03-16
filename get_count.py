@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import requests
 import json
+import os
+import requests
 
 import boto3
 # from botocore.errorfactory import NoSuchKey
@@ -25,7 +26,6 @@ def get_s3_count():
 def update_count(newcount):
     curcount = get_s3_count()
     if newcount > curcount:
-        print(f"Cases increased from {curcount} to {newcount}.")
 
         s3 = boto3.client('s3')
         retval = s3.put_object(
@@ -33,6 +33,7 @@ def update_count(newcount):
             Key='count.txt',
             Body=str(newcount)
         )
+    return (curcount, newcount)
 
 def lambda_handler(event, context):
     json.dumps(event, indent=2, default=str)
@@ -44,7 +45,21 @@ def lambda_handler(event, context):
     body = list(html.children)[3]
     
     count = int(list(list(soup.find_all('tbody')[0].children)[3].find_all('td'))[1].get_text())
-    update_count(count)
+    (curcount, newcount) = update_count(count)
+    if curcount < newcount:
+        sns = boto3.client('sns')
+        topic_arn = os.environ['SnsTopicArn'] # Will except if not there
+        message = {
+            'default': f"Cases increased from {curcount} to {newcount}.",
+            'sms': f"Cases increased from {curcount} to {newcount}.",
+            'email': f"Cases increased from {curcount} to {newcount}.  Email"
+        }
+        sns.publish(
+            TargetArn=topic_arn,
+            Message=json.dumps(message, default=str),
+            MessageStructure='json'
+        )
+        
     
 if __name__ == '__main__':
     lambda_handler('', '')

@@ -12,8 +12,12 @@ Resources:
         S3Key: !Sub "lambda/tn-gov-covid-19-${LambdaVersion}.zip"
       Handler: "get_count.lambda_handler"
       MemorySize: 128
+      Timeout: 30
       Role: !GetAtt [ LambdaExecutionRole, Arn ]
       Runtime: python3.6
+      Environment:
+        Variables:
+          SnsTopicArn: !Ref SnsTopic
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -79,6 +83,8 @@ Resources:
       Subscription:
         - Endpoint: andy@cowell.org
           Protocol: email
+        - Endpoint: +18658043082
+          Protocol: sms
               
 Outputs:
   LambdaFunction:
