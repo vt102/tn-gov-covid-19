@@ -50,9 +50,9 @@ def lambda_handler(event, context):
         sns = boto3.client('sns')
         topic_arn = os.environ['SnsTopicArn'] # Will except if not there
         message = {
-            'default': f"Cases increased from {curcount} to {newcount}.",
-            'sms': f"Cases increased from {curcount} to {newcount}.",
-            'email': f"Cases increased from {curcount} to {newcount}.  Email"
+            'default': f"TN cases increased from {curcount} to {newcount}.",
+            'sms': f"TN cases increased from {curcount} to {newcount}.",
+            'email': f"TN cases increased from {curcount} to {newcount}."
         }
         sns.publish(
             TargetArn=topic_arn,
