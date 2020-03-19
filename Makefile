@@ -19,4 +19,5 @@ build: get_count.py
 	zip -g ${ZIPFILE} get_count.py
 
 upload: build
+	[ -z "${ACCTID}" ] && exit 1 || echo 0
 	aws s3 cp ${ZIPFILE} "s3://deploy-${ACCTID}/lambda/"
